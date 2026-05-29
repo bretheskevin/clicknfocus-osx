@@ -13,11 +13,13 @@ macOS 11+ (Intel or Apple Silicon).
 ### Download (no Rust needed)
 
 1. From the [latest release](https://github.com/bretheskevin/clicknfocus-osx/releases/latest),
-   download the zip for your Mac and unzip it:
+   download the zip for your Mac:
    - **Apple Silicon** (M1/M2/M3…): `clicknfocus-macos-apple-silicon.zip`
    - **Intel**: `clicknfocus-macos-intel.zip`
-2. Run the installer:
+2. Unzip it and run the installer:
    ```sh
+   cd ~/Downloads
+   unzip clicknfocus-macos-apple-silicon.zip   # or clicknfocus-macos-intel.zip
    ./install.sh
    ```
 
