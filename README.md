@@ -14,6 +14,57 @@ on a background window is consumed just to bring it to the front.
 > app may still not respond to the synthetic event (e.g. apps that
 > validate the event source or apply custom first-responder logic).
 
+## Install
+
+No Rust or developer tools required. Just macOS 11 (Big Sur) or newer,
+Intel or Apple Silicon.
+
+1. Unzip `clicknfocus-macos.zip`.
+2. In the unzipped folder, run `./install.sh`.
+
+The install script will:
+- Remove the quarantine attribute (Gatekeeper).
+- Copy the app to `/Applications` (or `~/Applications` as fallback).
+- Set up a LaunchAgent so ClicknFocus starts automatically at login.
+- Open Accessibility settings — **you must enable ClicknFocus** in the list.
+
+> **Note:** Because the app is ad-hoc signed and not notarized by Apple,
+> macOS may block it on first run. The install script handles quarantine
+> removal. If you install manually instead, right-click the app → Open
+> to bypass Gatekeeper the first time.
+
+### Grant Accessibility permission
+
+**Required.** Without this, the event tap cannot intercept clicks.
+
+System Settings → Privacy & Security → Accessibility → enable **ClicknFocus**.
+
+### Check it's running
+
+ClicknFocus runs in the background with no Dock icon or menu bar item.
+
+```sh
+launchctl list | grep clicknfocus
+cat ~/Library/Logs/clicknfocus.log
+```
+
+### Update
+
+Re-run `./install.sh` with a newer build — it replaces the app and restarts
+the agent automatically. If click-to-focus stops working after an update,
+toggle ClicknFocus off and back on in the Accessibility list (ad-hoc
+signatures change between builds).
+
+### Uninstall
+
+```sh
+./uninstall.sh
+```
+
+This unloads the LaunchAgent, removes the plist, and deletes the app from
+`/Applications` (or `~/Applications`). You may also want to remove
+ClicknFocus from the Accessibility list manually.
+
 ## How it works
 
 A `CGEventTap` (HID-level, head-insert, **active**) intercepts
@@ -49,14 +100,16 @@ immediately after activation.
 Mouse-up events are **not** intercepted — the hardware mouse-up
 naturally pairs with the synthetic mouse-down.
 
-## Requirements
+## Build from source
 
+For development or running the binary directly (end users should use the
+[Install](#install) section instead — no Rust needed).
+
+Requirements:
 - macOS (Apple Silicon or Intel)
 - Rust (stable)
 - **Accessibility permission**: System Settings → Privacy & Security → Accessibility →
   enable the `clicknfocus-osx` binary (or your terminal, when running from one).
-
-## Build & run
 
 ```sh
 cargo build --release
@@ -71,13 +124,11 @@ cargo build --release
 | `--ignore <bundle-id>` | Skip an app by bundle id (repeatable)                   |
 | `--verbose`            | Verbose logging                                         |
 
-## Distribution (for friends without Rust)
+## Building the distributable (author only)
 
 ClicknFocus can be packaged as a standalone `.app` bundle that auto-starts
 at login via a launchd LaunchAgent. No paid Apple Developer account needed —
 the app is **ad-hoc signed** (not notarized).
-
-### Build the distributable (author only)
 
 ```sh
 ./build-app.sh
@@ -87,46 +138,8 @@ This produces:
 - `dist/ClicknFocus.app` — the signed universal (Intel + Apple Silicon) app bundle
 - `dist/clicknfocus-macos.zip` — zip file to share
 
-Share `clicknfocus-macos.zip` — it contains the app, `install.sh`, and `uninstall.sh`.
-
-### Install (friend)
-
-1. Unzip `clicknfocus-macos.zip`.
-2. In the unzipped folder, run `./install.sh`.
-
-The install script will:
-- Remove the quarantine attribute (Gatekeeper).
-- Copy the app to `/Applications` (or `~/Applications` as fallback).
-- Set up a LaunchAgent so ClicknFocus starts automatically at login.
-- Open Accessibility settings — **you must enable ClicknFocus** in the list.
-
-> **Note:** Because the app is ad-hoc signed and not notarized by Apple,
-> macOS may block it on first run. The install script handles quarantine
-> removal. If you install manually instead, right-click the app → Open
-> to bypass Gatekeeper the first time.
-
-### Grant Accessibility permission
-
-**Required.** Without this, the event tap cannot intercept clicks.
-
-System Settings → Privacy & Security → Accessibility → enable **ClicknFocus**.
-
-### Check it's running
-
-```sh
-launchctl list | grep clicknfocus
-cat ~/Library/Logs/clicknfocus.log
-```
-
-### Uninstall
-
-```sh
-./uninstall.sh
-```
-
-This unloads the LaunchAgent, removes the plist, and deletes the app from
-`/Applications` (or `~/Applications`). You may also want to remove
-ClicknFocus from the Accessibility list manually.
+Share `clicknfocus-macos.zip` — it contains the app, `install.sh`, and
+`uninstall.sh`. Recipients follow the [Install](#install) section above.
 
 ## Prior art
 
