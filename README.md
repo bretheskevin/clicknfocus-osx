@@ -8,7 +8,21 @@ app**, so a single click both focuses *and* hits the control under the cursor.
 
 ## Install
 
-Requires macOS 11+, [Rust](https://rustup.rs) (stable), and `git`.
+macOS 11+ (Intel or Apple Silicon).
+
+### Download (no Rust needed)
+
+1. Download `clicknfocus-macos.zip` from the
+   [latest release](https://github.com/bretheskevin/clicknfocus-osx/releases/latest)
+   and unzip it.
+2. Run the installer:
+   ```sh
+   ./install.sh
+   ```
+
+### Build from source
+
+Requires [Rust](https://rustup.rs) (stable) and `git`.
 
 ```sh
 git clone https://github.com/bretheskevin/clicknfocus-osx.git
@@ -17,8 +31,8 @@ cd clicknfocus-osx
 ./dist/install.sh   # installs, enables auto-start, opens Accessibility settings
 ```
 
-`install.sh` copies the app to `/Applications`, sets up a LaunchAgent for
-auto-start at login, and opens Accessibility settings.
+Either way, `install.sh` copies the app to `/Applications`, sets up a LaunchAgent
+for auto-start at login, and opens Accessibility settings.
 
 **You must enable ClicknFocus** in System Settings → Privacy & Security →
 Accessibility — without it the event tap can't intercept clicks. The installer
@@ -33,10 +47,11 @@ cat ~/Library/Logs/clicknfocus.log   # should show "Accessibility permission gra
 
 ## Update / Uninstall
 
-```sh
-git pull && ./build-app.sh && ./dist/install.sh   # update
-./uninstall.sh                                     # uninstall
-```
+To update, grab the new zip from
+[Releases](https://github.com/bretheskevin/clicknfocus-osx/releases/latest) and
+re-run `./install.sh` — or from source: `git pull && ./build-app.sh && ./dist/install.sh`.
+
+To uninstall, run `./uninstall.sh`.
 
 If click-to-focus stops working after an update, toggle ClicknFocus off and
 back on in the Accessibility list — ad-hoc signatures change between builds.
