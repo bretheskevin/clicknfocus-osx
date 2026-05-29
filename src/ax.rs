@@ -1,9 +1,7 @@
 use accessibility_sys::*;
 use core_foundation::base::{CFGetTypeID, CFRelease, CFRetain, CFTypeRef, TCFType};
 use core_foundation::string::CFString;
-use core_foundation_sys::array::{
-    CFArrayGetCount, CFArrayGetTypeID, CFArrayGetValueAtIndex, CFArrayRef,
-};
+use core_foundation_sys::array::{CFArrayGetCount, CFArrayGetTypeID, CFArrayGetValueAtIndex, CFArrayRef};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -58,10 +56,7 @@ impl AxFocusResolver {
         unsafe {
             AXUIElementSetMessagingTimeout(system_wide, AX_MESSAGING_TIMEOUT_SECS);
         }
-        Self {
-            system_wide,
-            bundle_cache: RefCell::new(HashMap::new()),
-        }
+        Self { system_wide, bundle_cache: RefCell::new(HashMap::new()) }
     }
 
     /// Bundle id for a pid, memoised. See `bundle_cache` for the staleness note.
@@ -151,11 +146,7 @@ unsafe fn ax_get_pid(element: AXUIElementRef) -> Option<i32> {
     unsafe {
         let mut pid: pid_t = 0;
         let err = AXUIElementGetPid(element, &mut pid);
-        if err == kAXErrorSuccess {
-            Some(pid)
-        } else {
-            None
-        }
+        if err == kAXErrorSuccess { Some(pid) } else { None }
     }
 }
 
@@ -169,11 +160,7 @@ unsafe fn ax_window_cgid(element: AXUIElementRef) -> Option<u32> {
     unsafe {
         let mut window_id: u32 = 0;
         let err = _AXUIElementGetWindow(element, &mut window_id);
-        if err == kAXErrorSuccess && window_id != 0 {
-            Some(window_id)
-        } else {
-            None
-        }
+        if err == kAXErrorSuccess && window_id != 0 { Some(window_id) } else { None }
     }
 }
 
@@ -182,16 +169,11 @@ unsafe fn ax_window_cgid(element: AXUIElementRef) -> Option<u32> {
 ///
 /// # Safety
 /// `app_element` must be a valid, non-null application AXUIElementRef.
-unsafe fn ax_find_window_by_cgid(
-    app_element: AXUIElementRef,
-    target_cgid: u32,
-    deadline: Instant,
-) -> Option<AXUIElementRef> {
+unsafe fn ax_find_window_by_cgid(app_element: AXUIElementRef, target_cgid: u32, deadline: Instant) -> Option<AXUIElementRef> {
     unsafe {
         let attr = CFString::new(kAXWindowsAttribute);
         let mut value: CFTypeRef = ptr::null();
-        let err =
-            AXUIElementCopyAttributeValue(app_element, attr.as_concrete_TypeRef(), &mut value);
+        let err = AXUIElementCopyAttributeValue(app_element, attr.as_concrete_TypeRef(), &mut value);
         if err != kAXErrorSuccess || value.is_null() {
             return None;
         }
@@ -236,8 +218,7 @@ unsafe fn ax_copy_focused_window(app_element: AXUIElementRef) -> Option<AXUIElem
     unsafe {
         let attr = CFString::new(kAXFocusedWindowAttribute);
         let mut value: CFTypeRef = ptr::null();
-        let err =
-            AXUIElementCopyAttributeValue(app_element, attr.as_concrete_TypeRef(), &mut value);
+        let err = AXUIElementCopyAttributeValue(app_element, attr.as_concrete_TypeRef(), &mut value);
         if err == kAXErrorSuccess && !value.is_null() {
             // Owned via the copy rule.
             Some(value as AXUIElementRef)
@@ -266,11 +247,7 @@ unsafe fn ax_find_window(element: AXUIElementRef) -> Option<AXUIElementRef> {
 ///
 /// # Safety
 /// `element` must be a valid, non-null AXUIElementRef.
-unsafe fn ax_find_window_inner(
-    element: AXUIElementRef,
-    remaining_depth: u32,
-    deadline: Instant,
-) -> Option<AXUIElementRef> {
+unsafe fn ax_find_window_inner(element: AXUIElementRef, remaining_depth: u32, deadline: Instant) -> Option<AXUIElementRef> {
     unsafe {
         // Bail before issuing any AX IPC at this level if the cumulative walk has
         // blown its time budget — a deep, slow AX tree must not stall the
@@ -303,11 +280,9 @@ unsafe fn ax_find_window_inner(
 
         let parent_attr = CFString::new(kAXParentAttribute);
         let mut parent: CFTypeRef = ptr::null();
-        let err =
-            AXUIElementCopyAttributeValue(element, parent_attr.as_concrete_TypeRef(), &mut parent);
+        let err = AXUIElementCopyAttributeValue(element, parent_attr.as_concrete_TypeRef(), &mut parent);
         if err == kAXErrorSuccess && !parent.is_null() {
-            let result =
-                ax_find_window_inner(parent as AXUIElementRef, remaining_depth - 1, deadline);
+            let result = ax_find_window_inner(parent as AXUIElementRef, remaining_depth - 1, deadline);
             CFRelease(parent);
             return result;
         }
@@ -324,11 +299,7 @@ impl FocusResolver for AxFocusResolver {
         unsafe {
             let attr = CFString::new(kAXFocusedApplicationAttribute);
             let mut value: CFTypeRef = ptr::null();
-            let err = AXUIElementCopyAttributeValue(
-                self.system_wide,
-                attr.as_concrete_TypeRef(),
-                &mut value,
-            );
+            let err = AXUIElementCopyAttributeValue(self.system_wide, attr.as_concrete_TypeRef(), &mut value);
             if err != kAXErrorSuccess || value.is_null() {
                 return None;
             }
@@ -344,20 +315,10 @@ impl FocusResolver for AxFocusResolver {
         // All CF objects returned by Copy functions are released on every path.
         unsafe {
             let mut element: AXUIElementRef = ptr::null_mut();
-            let err = AXUIElementCopyElementAtPosition(
-                self.system_wide,
-                x as f32,
-                y as f32,
-                &mut element,
-            );
+            let err = AXUIElementCopyElementAtPosition(self.system_wide, x as f32, y as f32, &mut element);
 
             if err != kAXErrorSuccess || element.is_null() {
-                log::debug!(
-                    "AXUIElementCopyElementAtPosition failed at ({}, {}): {}",
-                    x,
-                    y,
-                    error_string(err)
-                );
+                log::debug!("AXUIElementCopyElementAtPosition failed at ({}, {}): {}", x, y, error_string(err));
                 return None;
             }
 
@@ -397,13 +358,7 @@ impl FocusResolver for AxFocusResolver {
 
             CFRelease(window as *const c_void);
 
-            Some(WindowInfo {
-                pid,
-                bundle_id,
-                role,
-                window_id,
-                cg_window_id,
-            })
+            Some(WindowInfo { pid, bundle_id, role, window_id, cg_window_id })
         }
     }
 
@@ -422,17 +377,9 @@ impl FocusResolver for AxFocusResolver {
 
             let frontmost_attr = CFString::new(kAXFrontmostAttribute);
             let true_value = core_foundation::boolean::CFBoolean::true_value();
-            let err = AXUIElementSetAttributeValue(
-                app_element,
-                frontmost_attr.as_concrete_TypeRef(),
-                true_value.as_CFTypeRef(),
-            );
+            let err = AXUIElementSetAttributeValue(app_element, frontmost_attr.as_concrete_TypeRef(), true_value.as_CFTypeRef());
             if err != kAXErrorSuccess {
-                log::warn!(
-                    "Failed to set frontmost for pid {}: {}",
-                    info.pid,
-                    error_string(err)
-                );
+                log::warn!("Failed to set frontmost for pid {}: {}", info.pid, error_string(err));
             }
 
             // Raise/focus the *clicked* window, matched by its stable CG window
@@ -442,10 +389,8 @@ impl FocusResolver for AxFocusResolver {
             // Bound the whole window-resolution step so a slow/unresponsive
             // target can't stall the event-tap callback (mirrors ax_find_window).
             let deadline = Instant::now() + AX_WALK_BUDGET;
-            let target_window = info
-                .cg_window_id
-                .and_then(|cgid| ax_find_window_by_cgid(app_element, cgid, deadline))
-                .or_else(|| ax_copy_focused_window(app_element));
+            let target_window =
+                info.cg_window_id.and_then(|cgid| ax_find_window_by_cgid(app_element, cgid, deadline)).or_else(|| ax_copy_focused_window(app_element));
 
             if let Some(win) = target_window {
                 if raise {
@@ -458,11 +403,7 @@ impl FocusResolver for AxFocusResolver {
 
                 let main_attr = CFString::new(kAXMainAttribute);
                 let true_value = core_foundation::boolean::CFBoolean::true_value();
-                let _ = AXUIElementSetAttributeValue(
-                    win,
-                    main_attr.as_concrete_TypeRef(),
-                    true_value.as_CFTypeRef(),
-                );
+                let _ = AXUIElementSetAttributeValue(win, main_attr.as_concrete_TypeRef(), true_value.as_CFTypeRef());
 
                 CFRelease(win as *const c_void);
             }
@@ -471,12 +412,7 @@ impl FocusResolver for AxFocusResolver {
 
             // Logged at debug to keep the default log quiet (one line per
             // redirected click would otherwise grow the log file unbounded).
-            log::debug!(
-                "Focused app pid={} bundle={:?} raise={}",
-                info.pid,
-                info.bundle_id,
-                raise
-            );
+            log::debug!("Focused app pid={} bundle={:?} raise={}", info.pid, info.bundle_id, raise);
         }
     }
 }

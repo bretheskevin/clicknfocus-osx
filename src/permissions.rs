@@ -8,11 +8,7 @@ use core_foundation::string::CFString;
 /// If `prompt` is true, macOS will show the system dialog asking the user to grant access.
 /// Returns true if permission is already granted.
 pub fn check_accessibility_permission(prompt: bool) -> bool {
-    let prompt_value = if prompt {
-        CFBoolean::true_value()
-    } else {
-        CFBoolean::false_value()
-    };
+    let prompt_value = if prompt { CFBoolean::true_value() } else { CFBoolean::false_value() };
 
     // SAFETY: kAXTrustedCheckOptionPrompt is a static CFStringRef from the
     // Accessibility framework (get rule -- we do not own it, so wrap_under_get_rule).

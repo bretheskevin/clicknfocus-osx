@@ -15,20 +15,10 @@ use focus::FocusConfig;
 fn main() {
     let args = Args::parse();
 
-    let log_level = if args.verbose {
-        log::LevelFilter::Debug
-    } else {
-        log::LevelFilter::Info
-    };
-    env_logger::Builder::from_default_env()
-        .filter_level(log_level)
-        .init();
+    let log_level = if args.verbose { log::LevelFilter::Debug } else { log::LevelFilter::Info };
+    env_logger::Builder::from_default_env().filter_level(log_level).init();
 
-    log::info!(
-        "clicknfocus-osx starting (raise={}, ignore={:?})",
-        args.raise,
-        args.ignore
-    );
+    log::info!("clicknfocus-osx starting (raise={}, ignore={:?})", args.raise, args.ignore);
 
     // Check accessibility permission (prompts the user once if not granted).
     //
@@ -64,11 +54,7 @@ fn main() {
     // to avoid a theoretical truncation on platforms where u32 > i32::MAX.
     let own_pid = unsafe { libc::getpid() };
 
-    let config = FocusConfig {
-        raise: args.raise,
-        ignore_bundle_ids: args.ignore,
-        own_pid,
-    };
+    let config = FocusConfig { raise: args.raise, ignore_bundle_ids: args.ignore, own_pid };
 
     let resolver = ax::AxFocusResolver::new();
 

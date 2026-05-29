@@ -9,8 +9,7 @@ pub fn bundle_id_for_pid(pid: i32) -> Option<String> {
     // C string whose lifetime is tied to the NSString (valid for this scope).
     unsafe {
         let cls = objc::runtime::Class::get("NSRunningApplication")?;
-        let app: *mut objc::runtime::Object =
-            msg_send![cls, runningApplicationWithProcessIdentifier: pid];
+        let app: *mut objc::runtime::Object = msg_send![cls, runningApplicationWithProcessIdentifier: pid];
         if app.is_null() {
             return None;
         }

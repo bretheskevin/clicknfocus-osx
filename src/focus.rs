@@ -54,11 +54,7 @@ const ALWAYS_SKIP_BUNDLES: &[&str] = &["com.apple.dock"];
 /// Decides whether the given window should be focused,
 /// considering the current state and configuration.
 /// Returns true if activation should proceed.
-pub fn should_focus(
-    info: &WindowInfo,
-    config: &FocusConfig,
-    last_focused_window_id: Option<u64>,
-) -> bool {
+pub fn should_focus(info: &WindowInfo, config: &FocusConfig, last_focused_window_id: Option<u64>) -> bool {
     if info.pid == config.own_pid {
         log::debug!("Skipping: own process (pid={})", info.pid);
         return false;
@@ -98,21 +94,11 @@ mod tests {
     use std::cell::RefCell;
 
     fn make_config() -> FocusConfig {
-        FocusConfig {
-            raise: false,
-            ignore_bundle_ids: vec!["com.example.ignored".to_string()],
-            own_pid: 999,
-        }
+        FocusConfig { raise: false, ignore_bundle_ids: vec!["com.example.ignored".to_string()], own_pid: 999 }
     }
 
     fn make_window(pid: i32, bundle_id: &str, role: &str, window_id: u64) -> WindowInfo {
-        WindowInfo {
-            pid,
-            bundle_id: Some(bundle_id.to_string()),
-            role: Some(role.to_string()),
-            window_id,
-            cg_window_id: Some(window_id as u32),
-        }
+        WindowInfo { pid, bundle_id: Some(bundle_id.to_string()), role: Some(role.to_string()), window_id, cg_window_id: Some(window_id as u32) }
     }
 
     #[test]
@@ -175,26 +161,14 @@ mod tests {
     #[test]
     fn test_focus_window_no_bundle_id() {
         let config = make_config();
-        let info = WindowInfo {
-            pid: 100,
-            bundle_id: None,
-            role: Some("AXWindow".to_string()),
-            window_id: 10,
-            cg_window_id: Some(10),
-        };
+        let info = WindowInfo { pid: 100, bundle_id: None, role: Some("AXWindow".to_string()), window_id: 10, cg_window_id: Some(10) };
         assert!(should_focus(&info, &config, None));
     }
 
     #[test]
     fn test_focus_window_no_role() {
         let config = make_config();
-        let info = WindowInfo {
-            pid: 100,
-            bundle_id: Some("com.example.app".to_string()),
-            role: None,
-            window_id: 11,
-            cg_window_id: Some(11),
-        };
+        let info = WindowInfo { pid: 100, bundle_id: Some("com.example.app".to_string()), role: None, window_id: 11, cg_window_id: Some(11) };
         assert!(should_focus(&info, &config, None));
     }
 
@@ -216,11 +190,7 @@ mod tests {
 
     impl MockResolver {
         fn new() -> Self {
-            Self {
-                windows: Vec::new(),
-                activated: RefCell::new(Vec::new()),
-                frontmost: RefCell::new(None),
-            }
+            Self { windows: Vec::new(), activated: RefCell::new(Vec::new()), frontmost: RefCell::new(None) }
         }
 
         fn add_window(&mut self, x: f64, y: f64, info: WindowInfo) {
@@ -235,10 +205,7 @@ mod tests {
     impl FocusResolver for MockResolver {
         fn window_at_position(&self, x: f64, y: f64) -> Option<WindowInfo> {
             // Find the first window whose position matches (within 1.0 tolerance)
-            self.windows
-                .iter()
-                .find(|(wx, wy, _)| (wx - x).abs() < 1.0 && (wy - y).abs() < 1.0)
-                .map(|(_, _, info)| info.clone())
+            self.windows.iter().find(|(wx, wy, _)| (wx - x).abs() < 1.0 && (wy - y).abs() < 1.0).map(|(_, _, info)| info.clone())
         }
 
         fn activate(&self, info: &WindowInfo, raise: bool) {

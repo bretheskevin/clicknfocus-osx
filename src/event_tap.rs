@@ -1,8 +1,7 @@
 use core_foundation::base::TCFType;
 use core_foundation::mach_port::CFMachPortRef;
 use core_graphics::event::{
-    CGEvent, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
-    CGMouseButton, CallbackResult, EventField,
+    CGEvent, CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType, CGMouseButton, CallbackResult, EventField,
 };
 use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use core_graphics::geometry::CGPoint;
@@ -42,13 +41,7 @@ struct TapState<R: FocusResolver> {
 ///
 /// Extracted from the tap callback so the decision can be unit-tested with a
 /// mock resolver (see tests below).
-fn resolve_redirect_target<R: FocusResolver>(
-    resolver: &R,
-    config: &FocusConfig,
-    last_focused_window_id: Option<u64>,
-    x: f64,
-    y: f64,
-) -> Option<WindowInfo> {
+fn resolve_redirect_target<R: FocusResolver>(resolver: &R, config: &FocusConfig, last_focused_window_id: Option<u64>, x: f64, y: f64) -> Option<WindowInfo> {
     let window_info = resolver.window_at_position(x, y)?;
 
     // Skip own process, Dock, menubar, ignored bundles, already-focused window.
@@ -61,10 +54,7 @@ fn resolve_redirect_target<R: FocusResolver>(
     if let Some(front_pid) = resolver.frontmost_pid()
         && window_info.pid == front_pid
     {
-        log::debug!(
-            "Target app pid={} is already frontmost, passing click through",
-            window_info.pid
-        );
+        log::debug!("Target app pid={} is already frontmost, passing click through", window_info.pid);
         return None;
     }
 
@@ -91,12 +81,7 @@ fn mouse_button_for_event_type(etype: CGEventType) -> CGMouseButton {
 ///
 /// Returns `true` if the synthetic click was posted. On `false` the caller must
 /// NOT drop the original event — otherwise the click is lost entirely.
-fn synthesize_and_post_click(
-    cached_source: Option<&CGEventSource>,
-    etype: CGEventType,
-    original: &CGEvent,
-    point: CGPoint,
-) -> bool {
+fn synthesize_and_post_click(cached_source: Option<&CGEventSource>, etype: CGEventType, original: &CGEvent, point: CGPoint) -> bool {
     let source = match cached_source {
         Some(s) => s.clone(),
         None => match CGEventSource::new(CGEventSourceStateID::HIDSystemState) {
@@ -163,13 +148,7 @@ pub fn run_event_loop<R: FocusResolver + 'static>(resolver: R, config: FocusConf
         log::warn!("Could not pre-create CGEventSource; will create one per click");
     }
 
-    let state = Box::new(std::cell::RefCell::new(TapState {
-        resolver,
-        config,
-        last_focused_window_id: None,
-        tap_port: ptr::null_mut(),
-        event_source,
-    }));
+    let state = Box::new(std::cell::RefCell::new(TapState { resolver, config, last_focused_window_id: None, tap_port: ptr::null_mut(), event_source }));
     let state_ptr = Box::into_raw(state);
 
     let callback = move |_proxy, etype, event: &CGEvent| {
@@ -211,24 +190,13 @@ pub fn run_event_loop<R: FocusResolver + 'static>(resolver: R, config: FocusConf
         unsafe {
             let mut s = (*state_ptr).borrow_mut();
 
-            let window_info = match resolve_redirect_target(
-                &s.resolver,
-                &s.config,
-                s.last_focused_window_id,
-                x,
-                y,
-            ) {
+            let window_info = match resolve_redirect_target(&s.resolver, &s.config, s.last_focused_window_id, x, y) {
                 Some(info) => info,
                 None => return CallbackResult::Keep,
             };
 
             // --- Redirect: swallow original click, activate, re-post ---
-            log::debug!(
-                "Redirecting click: pid={} bundle={:?} window_id={}",
-                window_info.pid,
-                window_info.bundle_id,
-                window_info.window_id
-            );
+            log::debug!("Redirecting click: pid={} bundle={:?} window_id={}", window_info.pid, window_info.bundle_id, window_info.window_id);
 
             // (a) Activate the target app synchronously via Accessibility API.
             s.resolver.activate(&window_info, s.config.raise);
@@ -237,23 +205,14 @@ pub fn run_event_loop<R: FocusResolver + 'static>(resolver: R, config: FocusConf
             // (b) Immediately synthesize and post a new mouse-down at the same
             //     position, preserving the original event's state and tagged
             //     with our magic constant.
-            let posted = synthesize_and_post_click(
-                s.event_source.as_ref(),
-                etype,
-                event,
-                CGPoint::new(x, y),
-            );
+            let posted = synthesize_and_post_click(s.event_source.as_ref(), etype, event, CGPoint::new(x, y));
 
             // (c) Drop the original event so it doesn't also arrive at the
             //     (now-focused) app, which would cause a double-click effect.
             //     If the synthetic post failed, keep the original instead so the
             //     click still reaches the now-frontmost app rather than being
             //     swallowed entirely.
-            if posted {
-                CallbackResult::Drop
-            } else {
-                CallbackResult::Keep
-            }
+            if posted { CallbackResult::Drop } else { CallbackResult::Keep }
         }
     };
 
@@ -360,21 +319,11 @@ mod tests {
     }
 
     fn config() -> FocusConfig {
-        FocusConfig {
-            raise: false,
-            ignore_bundle_ids: vec!["com.example.ignored".to_string()],
-            own_pid: 999,
-        }
+        FocusConfig { raise: false, ignore_bundle_ids: vec!["com.example.ignored".to_string()], own_pid: 999 }
     }
 
     fn window(pid: i32, bundle: &str, role: &str, id: u64) -> WindowInfo {
-        WindowInfo {
-            pid,
-            bundle_id: Some(bundle.to_string()),
-            role: Some(role.to_string()),
-            window_id: id,
-            cg_window_id: Some(id as u32),
-        }
+        WindowInfo { pid, bundle_id: Some(bundle.to_string()), role: Some(role.to_string()), window_id: id, cg_window_id: Some(id as u32) }
     }
 
     #[test]
