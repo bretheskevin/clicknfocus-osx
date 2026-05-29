@@ -162,6 +162,28 @@ unsafe fn ax_find_window_inner(
 }
 
 impl FocusResolver for AxFocusResolver {
+    fn frontmost_pid(&self) -> Option<i32> {
+        // SAFETY: self.system_wide is a valid AXUIElementRef.
+        // We query kAXFocusedApplicationAttribute to get the frontmost app,
+        // then extract its PID via AXUIElementGetPid.
+        unsafe {
+            let attr = CFString::new(kAXFocusedApplicationAttribute);
+            let mut value: CFTypeRef = ptr::null();
+            let err = AXUIElementCopyAttributeValue(
+                self.system_wide,
+                attr.as_concrete_TypeRef(),
+                &mut value,
+            );
+            if err != kAXErrorSuccess || value.is_null() {
+                return None;
+            }
+            let app_element = value as AXUIElementRef;
+            let pid = ax_get_pid(app_element);
+            CFRelease(value);
+            pid
+        }
+    }
+
     fn window_at_position(&self, x: f64, y: f64) -> Option<WindowInfo> {
         // SAFETY: self.system_wide is a valid AXUIElementRef created in new().
         // All CF objects returned by Copy functions are released on every path.

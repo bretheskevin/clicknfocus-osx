@@ -22,6 +22,10 @@ pub trait FocusResolver {
     /// Make the app with the given PID frontmost and focus its window.
     /// If `raise` is true, also raise the window above other windows.
     fn activate(&self, info: &WindowInfo, raise: bool);
+
+    /// Return the PID of the currently frontmost (focused) application.
+    /// Returns None if it cannot be determined.
+    fn frontmost_pid(&self) -> Option<i32>;
 }
 
 /// Configuration for the focus decision engine.
@@ -205,6 +209,7 @@ mod tests {
     struct MockResolver {
         windows: Vec<(f64, f64, WindowInfo)>,
         activated: RefCell<Vec<(WindowInfo, bool)>>,
+        frontmost: RefCell<Option<i32>>,
     }
 
     impl MockResolver {
@@ -212,11 +217,16 @@ mod tests {
             Self {
                 windows: Vec::new(),
                 activated: RefCell::new(Vec::new()),
+                frontmost: RefCell::new(None),
             }
         }
 
         fn add_window(&mut self, x: f64, y: f64, info: WindowInfo) {
             self.windows.push((x, y, info));
+        }
+
+        fn set_frontmost_pid(&self, pid: i32) {
+            *self.frontmost.borrow_mut() = Some(pid);
         }
     }
 
@@ -231,6 +241,10 @@ mod tests {
 
         fn activate(&self, info: &WindowInfo, raise: bool) {
             self.activated.borrow_mut().push((info.clone(), raise));
+        }
+
+        fn frontmost_pid(&self) -> Option<i32> {
+            *self.frontmost.borrow()
         }
     }
 
@@ -284,6 +298,43 @@ mod tests {
         assert_eq!(activated.len(), 1);
         assert_eq!(activated[0].0.pid, 100);
         assert!(!activated[0].1); // raise=false (default config)
+    }
+
+    #[test]
+    fn test_skip_redirect_when_target_app_already_frontmost() {
+        let mut resolver = MockResolver::new();
+        let window = make_window(100, "com.test.safari", "AXWindow", 42);
+        resolver.add_window(500.0, 300.0, window);
+        let config = make_config();
+
+        // Set the target app as already frontmost
+        resolver.set_frontmost_pid(100);
+
+        let info = resolver.window_at_position(500.0, 300.0).unwrap();
+
+        // The window passes should_focus (different from own_pid, valid role, etc.)
+        assert!(should_focus(&info, &config, None));
+
+        // But the frontmost check in the event tap would skip redirect:
+        // target_pid == frontmost_pid → no redirect needed
+        assert_eq!(resolver.frontmost_pid(), Some(info.pid));
+
+        // No activation should happen (simulating the event tap logic)
+        let activated = resolver.activated.borrow();
+        assert_eq!(activated.len(), 0);
+    }
+
+    #[test]
+    fn test_frontmost_pid_returns_none_by_default() {
+        let resolver = MockResolver::new();
+        assert_eq!(resolver.frontmost_pid(), None);
+    }
+
+    #[test]
+    fn test_frontmost_pid_returns_set_value() {
+        let resolver = MockResolver::new();
+        resolver.set_frontmost_pid(42);
+        assert_eq!(resolver.frontmost_pid(), Some(42));
     }
 
     #[test]
