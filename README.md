@@ -16,10 +16,11 @@ macOS 11+ (Intel or Apple Silicon).
    download the zip for your Mac:
    - **Apple Silicon** (M1/M2/M3…): `clicknfocus-macos-apple-silicon.zip`
    - **Intel**: `clicknfocus-macos-intel.zip`
-2. Unzip it and run the installer:
+2. Unzip it into its own folder and run the installer:
    ```sh
    cd ~/Downloads
-   unzip clicknfocus-macos-apple-silicon.zip   # or clicknfocus-macos-intel.zip
+   unzip clicknfocus-macos-apple-silicon.zip -d clicknfocus   # or clicknfocus-macos-intel.zip
+   cd clicknfocus
    ./install.sh
    ```
 
