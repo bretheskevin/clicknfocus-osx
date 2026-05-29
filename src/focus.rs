@@ -59,13 +59,11 @@ pub fn should_focus(
     config: &FocusConfig,
     last_focused_window_id: Option<u64>,
 ) -> bool {
-    // Skip if it's our own process
     if info.pid == config.own_pid {
         log::debug!("Skipping: own process (pid={})", info.pid);
         return false;
     }
 
-    // Skip system UI roles
     if let Some(ref role) = info.role
         && SKIP_ROLES.iter().any(|r| r == role)
     {
@@ -73,7 +71,6 @@ pub fn should_focus(
         return false;
     }
 
-    // Skip always-ignored bundles (Dock)
     if let Some(ref bundle) = info.bundle_id
         && ALWAYS_SKIP_BUNDLES.iter().any(|b| b == bundle)
     {
@@ -81,7 +78,6 @@ pub fn should_focus(
         return false;
     }
 
-    // Skip user-configured ignore list
     if let Some(ref bundle) = info.bundle_id
         && config.ignore_bundle_ids.iter().any(|b| b == bundle)
     {
@@ -89,7 +85,6 @@ pub fn should_focus(
         return false;
     }
 
-    // Skip if same window is already focused
     if let Some(last_id) = last_focused_window_id
         && info.window_id == last_id
     {

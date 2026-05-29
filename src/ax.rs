@@ -264,7 +264,6 @@ unsafe fn ax_find_window_inner(
     deadline: Instant,
 ) -> Option<AXUIElementRef> {
     unsafe {
-        // First check if the element itself is a window
         if let Some(role) = ax_get_string_attribute(element, kAXRoleAttribute)
             && role == "AXWindow"
         {
@@ -273,7 +272,6 @@ unsafe fn ax_find_window_inner(
             return Some(element);
         }
 
-        // Try to get the AXWindow attribute
         let attr = CFString::new(kAXWindowAttribute);
         let mut value: CFTypeRef = ptr::null();
         let err = AXUIElementCopyAttributeValue(element, attr.as_concrete_TypeRef(), &mut value);
@@ -281,7 +279,6 @@ unsafe fn ax_find_window_inner(
             return Some(value as AXUIElementRef);
         }
 
-        // Stop recursion if we've reached the depth limit
         if remaining_depth == 0 {
             log::debug!("ax_find_window: max depth reached, giving up");
             return None;
@@ -294,7 +291,6 @@ unsafe fn ax_find_window_inner(
             return None;
         }
 
-        // Walk up via AXParent
         let parent_attr = CFString::new(kAXParentAttribute);
         let mut parent: CFTypeRef = ptr::null();
         let err =
@@ -358,7 +354,6 @@ impl FocusResolver for AxFocusResolver {
             // Get the role of the element directly under cursor (for skip logic)
             let role = ax_get_string_attribute(element, kAXRoleAttribute);
 
-            // Find the window
             let window = ax_find_window(element);
             CFRelease(element as *const c_void);
 
@@ -370,7 +365,6 @@ impl FocusResolver for AxFocusResolver {
                 }
             };
 
-            // Get PID
             let pid = match ax_get_pid(window) {
                 Some(p) => p,
                 None => {
@@ -380,7 +374,6 @@ impl FocusResolver for AxFocusResolver {
                 }
             };
 
-            // Get bundle ID from PID (memoised)
             let bundle_id = self.cached_bundle_id(pid);
 
             // Stable window identity via the CoreGraphics window id. The dedup
@@ -417,7 +410,6 @@ impl FocusResolver for AxFocusResolver {
             // Bound AX IPC so an unresponsive target can't stall the tap callback.
             AXUIElementSetMessagingTimeout(app_element, AX_MESSAGING_TIMEOUT_SECS);
 
-            // Set app as frontmost
             let frontmost_attr = CFString::new(kAXFrontmostAttribute);
             let true_value = core_foundation::boolean::CFBoolean::true_value();
             let err = AXUIElementSetAttributeValue(
@@ -443,7 +435,6 @@ impl FocusResolver for AxFocusResolver {
                 .or_else(|| ax_copy_focused_window(app_element));
 
             if let Some(win) = target_window {
-                // Raise the window if requested
                 if raise {
                     let raise_action = CFString::new(kAXRaiseAction);
                     let err = AXUIElementPerformAction(win, raise_action.as_concrete_TypeRef());
@@ -452,7 +443,6 @@ impl FocusResolver for AxFocusResolver {
                     }
                 }
 
-                // Set the window as main
                 let main_attr = CFString::new(kAXMainAttribute);
                 let true_value = core_foundation::boolean::CFBoolean::true_value();
                 let _ = AXUIElementSetAttributeValue(

@@ -8,20 +8,16 @@ pub fn bundle_id_for_pid(pid: i32) -> Option<String> {
     // The CStr::from_ptr call is safe because UTF8String returns a null-terminated
     // C string whose lifetime is tied to the NSString (valid for this scope).
     unsafe {
-        // Get NSRunningApplication class
         let cls = objc::runtime::Class::get("NSRunningApplication")?;
-        // Call +[NSRunningApplication runningApplicationWithProcessIdentifier:]
         let app: *mut objc::runtime::Object =
             msg_send![cls, runningApplicationWithProcessIdentifier: pid];
         if app.is_null() {
             return None;
         }
-        // Call -[NSRunningApplication bundleIdentifier]
         let bundle_id: *mut objc::runtime::Object = msg_send![app, bundleIdentifier];
         if bundle_id.is_null() {
             return None;
         }
-        // Convert NSString to &str
         let cstr: *const std::ffi::c_char = msg_send![bundle_id, UTF8String];
         if cstr.is_null() {
             return None;
