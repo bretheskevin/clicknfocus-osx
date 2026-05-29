@@ -16,22 +16,28 @@ on a background window is consumed just to bring it to the front.
 
 ## Install
 
-No Rust or developer tools required. Just macOS 11 (Big Sur) or newer,
-Intel or Apple Silicon.
+Requirements: macOS 11 (Big Sur) or newer (Intel or Apple Silicon),
+[Rust](https://rustup.rs) (stable), and `git`.
 
-1. Unzip `clicknfocus-macos.zip`.
-2. In the unzipped folder, run `./install.sh`.
+Clone, build, and install in one go:
 
-The install script will:
+```sh
+git clone https://github.com/bretheskevin/clicknfocus-osx.git
+cd clicknfocus-osx
+./build-app.sh      # builds the universal app bundle into dist/
+./dist/install.sh   # installs, enables auto-start, opens Accessibility settings
+```
+
+`install.sh` will:
 - Remove the quarantine attribute (Gatekeeper).
 - Copy the app to `/Applications` (or `~/Applications` as fallback).
 - Set up a LaunchAgent so ClicknFocus starts automatically at login.
 - Open Accessibility settings — **you must enable ClicknFocus** in the list.
 
-> **Note:** Because the app is ad-hoc signed and not notarized by Apple,
-> macOS may block it on first run. The install script handles quarantine
-> removal. If you install manually instead, right-click the app → Open
-> to bypass Gatekeeper the first time.
+> **Note:** The app is ad-hoc signed (not notarized by Apple), so macOS may
+> block it on first run. `install.sh` handles quarantine removal. If you launch
+> the app manually instead, right-click it → Open to bypass Gatekeeper the
+> first time.
 
 ### Grant Accessibility permission
 
@@ -50,10 +56,16 @@ cat ~/Library/Logs/clicknfocus.log
 
 ### Update
 
-Re-run `./install.sh` with a newer build — it replaces the app and restarts
-the agent automatically. If click-to-focus stops working after an update,
-toggle ClicknFocus off and back on in the Accessibility list (ad-hoc
-signatures change between builds).
+Pull, rebuild, and re-install:
+
+```sh
+git pull
+./build-app.sh
+./dist/install.sh   # replaces the app and restarts the agent automatically
+```
+
+If click-to-focus stops working after an update, toggle ClicknFocus off and
+back on in the Accessibility list (ad-hoc signatures change between builds).
 
 ### Uninstall
 
@@ -102,8 +114,8 @@ naturally pairs with the synthetic mouse-down.
 
 ## Build from source
 
-For development or running the binary directly (end users should use the
-[Install](#install) section instead — no Rust needed).
+For development or running the binary directly, without the app bundle and
+auto-start LaunchAgent (the [Install](#install) section sets those up for you).
 
 Requirements:
 - macOS (Apple Silicon or Intel)
