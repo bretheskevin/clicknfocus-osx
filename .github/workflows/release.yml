@@ -1,18 +1,18 @@
 name: release
 
-# Every push to main builds the Intel and Apple Silicon zips and publishes
-# them to a single versioned release. The version is read from Cargo.toml —
-# bump it to cut a new release; pushes without a bump refresh the current
-# release's assets in place.
+# Releases are cut by pushing a version tag (e.g. `git tag v1.1.0 && git push
+# --tags`). Each tag builds the Intel and Apple Silicon zips and publishes them
+# to its own release, so the tag, the source it points at, and the binaries
+# always match. Pushes to main no longer touch releases.
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: release
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -32,9 +32,14 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
 
-      - name: Read version from Cargo.toml
-        id: version
-        run: echo "version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          cargo_version=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$cargo_version" != "$tag_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Cargo.toml version $cargo_version. Bump Cargo.toml or retag."
+            exit 1
+          fi
 
       - name: Build Intel zip
         run: ./build-app.sh intel
@@ -42,18 +47,17 @@ jobs:
       - name: Build Apple Silicon zip
         run: ./build-app.sh apple
 
-      - name: Publish release v${{ steps.version.outputs.version }}
+      - name: Publish release ${{ github.ref_name }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           fail_on_unmatched_files: true
           files: |
             dist/clicknfocus-macos-intel.zip
             dist/clicknfocus-macos-apple-silicon.zip
           body: |
-            Eager click-to-focus for macOS — v${{ steps.version.outputs.version }}.
+            Eager click-to-focus for macOS — ${{ github.ref_name }}.
 
             ## Install (no Rust needed)
 
