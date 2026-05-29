@@ -1,10 +1,10 @@
 [package]
-name = "hoverfocus"
+name = "hoverfocus-osx"
 version = "0.1.0"
 edition = "2024"
 description = "Focus-follows-mouse (hover-to-focus) for macOS"
 license = "MIT"
-repository = "https://github.com/bretheskevin/hoverfocus"
+repository = "https://github.com/bretheskevin/hoverfocus-osx"
 readme = "README.md"
 
 [dependencies]

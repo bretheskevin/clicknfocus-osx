@@ -1,4 +1,4 @@
-# HoverFocus
+# hoverfocus-osx
 
 Focus-follows-mouse (hover-to-focus) for macOS, written in Rust.
 
@@ -12,7 +12,7 @@ that macOS doesn't provide out of the box.
 ## How it works
 
 A `CGEventTap` listens for mouse-moved events. When the cursor settles on a new
-window (after a short configurable delay), HoverFocus uses the macOS Accessibility
+window (after a short configurable delay), hoverfocus-osx uses the macOS Accessibility
 API (`AXUIElementCopyElementAtPosition`) to find the window under the cursor and
 makes its application frontmost — focusing it without necessarily raising it above
 other windows.
@@ -22,13 +22,13 @@ other windows.
 - macOS (Apple Silicon or Intel)
 - Rust (stable)
 - **Accessibility permission**: System Settings → Privacy & Security → Accessibility →
-  enable the `hoverfocus` binary (or your terminal, when running from one).
+  enable the `hoverfocus-osx` binary (or your terminal, when running from one).
 
 ## Build & run
 
 ```sh
 cargo build --release
-./target/release/hoverfocus --verbose
+./target/release/hoverfocus-osx --verbose
 ```
 
 ### Planned flags
