@@ -47,6 +47,16 @@ cp -R "$APP_SOURCE" "$INSTALL_DIR/ClicknFocus.app"
 
 INSTALLED_APP="$INSTALL_DIR/ClicknFocus.app"
 
+# ── Reset stale Accessibility grant ─────────────────────────────────
+# The app is adhoc-signed, so every rebuild produces a new code-signing
+# hash (cdhash). macOS ties the Accessibility grant to that hash, so a
+# grant made for a previous build no longer matches the freshly-copied
+# binary — it lingers as a ghost "ON" entry the system silently ignores,
+# leaving the agent stuck on "permission not granted". Clearing it forces
+# a clean re-grant that actually matches this build.
+echo "==> Resetting any stale Accessibility grant for a clean re-authorization..."
+tccutil reset Accessibility "$LABEL" >/dev/null 2>&1 || true
+
 # ── Generate and install LaunchAgent ─────────────────────────────────
 echo "==> Setting up LaunchAgent for auto-start at login..."
 mkdir -p "$LAUNCH_AGENT_DIR"
@@ -118,9 +128,15 @@ if [ -t 0 ]; then
   echo ""
   read -r -p "  After toggling ClicknFocus ON, press Enter to start it... " _
   echo "==> Restarting the agent so it picks up the permission..."
+  # Remember where the log ends now so we only inspect lines written by the
+  # restart below — otherwise a "granted" line from an earlier run would make
+  # us report success even though the current process lacks the permission.
+  LOG_LINES_BEFORE=0
+  [ -f "$LOG_FILE" ] && LOG_LINES_BEFORE=$(wc -l < "$LOG_FILE" | tr -d ' ')
   launchctl kickstart -k "$GUI_DOMAIN/$LABEL" 2>/dev/null || true
-  sleep 1
-  if grep -q "Accessibility permission granted" "$LOG_FILE" 2>/dev/null; then
+  sleep 2
+  if tail -n "+$((LOG_LINES_BEFORE + 1))" "$LOG_FILE" 2>/dev/null \
+       | grep -q "Accessibility permission granted"; then
     echo "==> ClicknFocus is running with Accessibility permission."
   else
     echo "==> Could not confirm the permission yet. If click-to-focus doesn't"
