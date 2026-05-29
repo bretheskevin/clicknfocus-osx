@@ -68,6 +68,6 @@ This defeats macOS's `acceptsFirstMouse:` behaviour, where the first click on
 an inactive window is consumed just to raise it. A few apps that validate the
 event source may still ignore the synthetic click.
 
-## Prior art
+## License
 
-Inspired by [sbmpost/AutoRaise](https://github.com/sbmpost/AutoRaise). MIT licensed.
+MIT
