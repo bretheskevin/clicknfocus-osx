@@ -88,19 +88,22 @@ fn mouse_button_for_event_type(etype: CGEventType) -> CGMouseButton {
 /// `cached_source` is reused when present to avoid recreating a CGEventSource
 /// on every click; the original event is used to preserve modifier flags,
 /// click state (double-clicks), and the precise button number.
+///
+/// Returns `true` if the synthetic click was posted. On `false` the caller must
+/// NOT drop the original event — otherwise the click is lost entirely.
 fn synthesize_and_post_click(
     cached_source: Option<&CGEventSource>,
     etype: CGEventType,
     original: &CGEvent,
     point: CGPoint,
-) {
+) -> bool {
     let source = match cached_source {
         Some(s) => s.clone(),
         None => match CGEventSource::new(CGEventSourceStateID::HIDSystemState) {
             Ok(s) => s,
             Err(()) => {
                 log::warn!("Failed to create CGEventSource for synthetic click");
-                return;
+                return false;
             }
         },
     };
@@ -110,7 +113,7 @@ fn synthesize_and_post_click(
         Ok(e) => e,
         Err(()) => {
             log::warn!("Failed to create synthetic mouse event");
-            return;
+            return false;
         }
     };
 
@@ -133,6 +136,7 @@ fn synthesize_and_post_click(
     // inserted here between activate() and this post. For now we go immediate
     // because the user chose the immediate strategy.
     event.post(CGEventTapLocation::HID);
+    true
 }
 
 /// Run the event tap loop. This function blocks forever (runs the CFRunLoop).
@@ -233,11 +237,23 @@ pub fn run_event_loop<R: FocusResolver + 'static>(resolver: R, config: FocusConf
             // (b) Immediately synthesize and post a new mouse-down at the same
             //     position, preserving the original event's state and tagged
             //     with our magic constant.
-            synthesize_and_post_click(s.event_source.as_ref(), etype, event, CGPoint::new(x, y));
+            let posted = synthesize_and_post_click(
+                s.event_source.as_ref(),
+                etype,
+                event,
+                CGPoint::new(x, y),
+            );
 
             // (c) Drop the original event so it doesn't also arrive at the
             //     (now-focused) app, which would cause a double-click effect.
-            CallbackResult::Drop
+            //     If the synthetic post failed, keep the original instead so the
+            //     click still reaches the now-frontmost app rather than being
+            //     swallowed entirely.
+            if posted {
+                CallbackResult::Drop
+            } else {
+                CallbackResult::Keep
+            }
         }
     };
 

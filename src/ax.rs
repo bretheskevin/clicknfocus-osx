@@ -185,6 +185,7 @@ unsafe fn ax_window_cgid(element: AXUIElementRef) -> Option<u32> {
 unsafe fn ax_find_window_by_cgid(
     app_element: AXUIElementRef,
     target_cgid: u32,
+    deadline: Instant,
 ) -> Option<AXUIElementRef> {
     unsafe {
         let attr = CFString::new(kAXWindowsAttribute);
@@ -203,6 +204,13 @@ unsafe fn ax_find_window_by_cgid(
         let count = CFArrayGetCount(array);
         let mut found: Option<AXUIElementRef> = None;
         for i in 0..count {
+            // Each ax_window_cgid is an AX IPC; an app with many windows could
+            // chain enough to stall the tap callback. Stop once the budget is
+            // blown and fall back to the focused window (see AX_WALK_BUDGET).
+            if Instant::now() >= deadline {
+                log::debug!("ax_find_window_by_cgid: time budget exceeded, giving up");
+                break;
+            }
             let el = CFArrayGetValueAtIndex(array, i) as AXUIElementRef;
             if el.is_null() {
                 continue;
@@ -264,6 +272,15 @@ unsafe fn ax_find_window_inner(
     deadline: Instant,
 ) -> Option<AXUIElementRef> {
     unsafe {
+        // Bail before issuing any AX IPC at this level if the cumulative walk has
+        // blown its time budget — a deep, slow AX tree must not stall the
+        // event-tap callback (see AX_WALK_BUDGET). Checked first so the budget
+        // can't be overshot by this level's role/window lookups.
+        if Instant::now() >= deadline {
+            log::debug!("ax_find_window: time budget exceeded, giving up");
+            return None;
+        }
+
         if let Some(role) = ax_get_string_attribute(element, kAXRoleAttribute)
             && role == "AXWindow"
         {
@@ -281,13 +298,6 @@ unsafe fn ax_find_window_inner(
 
         if remaining_depth == 0 {
             log::debug!("ax_find_window: max depth reached, giving up");
-            return None;
-        }
-
-        // Stop if the cumulative walk has blown its time budget — a deep, slow
-        // AX tree must not stall the event-tap callback (see AX_WALK_BUDGET).
-        if Instant::now() >= deadline {
-            log::debug!("ax_find_window: time budget exceeded, giving up");
             return None;
         }
 
@@ -429,9 +439,12 @@ impl FocusResolver for AxFocusResolver {
             // id. Falls back to the app's focused window if the CG id is
             // unknown or the exact window can't be located, so multi-window
             // apps still behave reasonably.
+            // Bound the whole window-resolution step so a slow/unresponsive
+            // target can't stall the event-tap callback (mirrors ax_find_window).
+            let deadline = Instant::now() + AX_WALK_BUDGET;
             let target_window = info
                 .cg_window_id
-                .and_then(|cgid| ax_find_window_by_cgid(app_element, cgid))
+                .and_then(|cgid| ax_find_window_by_cgid(app_element, cgid, deadline))
                 .or_else(|| ax_copy_focused_window(app_element));
 
             if let Some(win) = target_window {

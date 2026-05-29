@@ -71,18 +71,15 @@ pub fn should_focus(
         return false;
     }
 
-    if let Some(ref bundle) = info.bundle_id
-        && ALWAYS_SKIP_BUNDLES.iter().any(|b| b == bundle)
-    {
-        log::debug!("Skipping: always-skip bundle {:?}", bundle);
-        return false;
-    }
-
-    if let Some(ref bundle) = info.bundle_id
-        && config.ignore_bundle_ids.iter().any(|b| b == bundle)
-    {
-        log::debug!("Skipping: user-ignored bundle {:?}", bundle);
-        return false;
+    if let Some(ref bundle) = info.bundle_id {
+        if ALWAYS_SKIP_BUNDLES.iter().any(|b| b == bundle) {
+            log::debug!("Skipping: always-skip bundle {:?}", bundle);
+            return false;
+        }
+        if config.ignore_bundle_ids.iter().any(|b| b == bundle) {
+            log::debug!("Skipping: user-ignored bundle {:?}", bundle);
+            return false;
+        }
     }
 
     if let Some(last_id) = last_focused_window_id
