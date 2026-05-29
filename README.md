@@ -10,7 +10,7 @@ app**, so a single click both focuses *and* hits the control under the cursor.
 
 macOS 11+ (Intel or Apple Silicon).
 
-### Download (no Rust needed)
+### Download
 
 1. From the [latest release](https://github.com/bretheskevin/clicknfocus-osx/releases/latest),
    download the zip for your Mac:
