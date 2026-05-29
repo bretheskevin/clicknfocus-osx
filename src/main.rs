@@ -30,14 +30,18 @@ fn main() {
         args.ignore
     );
 
-    // Check accessibility permission (will prompt the user if not granted)
+    // Check accessibility permission (prompts the user once if not granted).
+    // Rather than exit(1) — which under launchd's KeepAlive would respawn in a
+    // tight loop and re-prompt — we wait in-process until the user grants it.
     if !permissions::check_accessibility_permission(true) {
-        eprintln!(
-            "error: Accessibility permission is required.\n\
-             Grant access in: System Settings > Privacy & Security > Accessibility\n\
-             Then restart clicknfocus-osx."
+        log::warn!(
+            "Accessibility permission not granted. Waiting for it to be enabled in \
+             System Settings > Privacy & Security > Accessibility..."
         );
-        std::process::exit(1);
+        // Poll without re-prompting (the system dialog was already shown above).
+        while !permissions::check_accessibility_permission(false) {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+        }
     }
     log::info!("Accessibility permission granted");
 

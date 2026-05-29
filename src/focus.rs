@@ -7,9 +7,16 @@ pub struct WindowInfo {
     pub bundle_id: Option<String>,
     /// The AX role of the resolved element (e.g. "AXWindow", "AXMenuBar").
     pub role: Option<String>,
-    /// An opaque identifier for the window, used to detect "same window" across calls.
-    /// In production this is the stringified pointer of the AXUIElement window.
+    /// An opaque identifier for the window, used to detect "same window" across
+    /// calls (dedup). In production this is the CoreGraphics window id when
+    /// available, falling back to the AXUIElement pointer otherwise — so it is
+    /// stable across calls only when `cg_window_id` is `Some`.
     pub window_id: u64,
+    /// The CoreGraphics window id, when it could be resolved. Used to match the
+    /// exact clicked window during activation (`None` → fall back to the app's
+    /// focused window). Kept separate from `window_id` to avoid conflating the
+    /// CG-id and pointer-fallback id spaces.
+    pub cg_window_id: Option<u32>,
 }
 
 /// Trait abstracting macOS Accessibility API calls.
@@ -112,6 +119,7 @@ mod tests {
             bundle_id: Some(bundle_id.to_string()),
             role: Some(role.to_string()),
             window_id,
+            cg_window_id: Some(window_id as u32),
         }
     }
 
@@ -180,6 +188,7 @@ mod tests {
             bundle_id: None,
             role: Some("AXWindow".to_string()),
             window_id: 10,
+            cg_window_id: Some(10),
         };
         assert!(should_focus(&info, &config, None));
     }
@@ -192,6 +201,7 @@ mod tests {
             bundle_id: Some("com.example.app".to_string()),
             role: None,
             window_id: 11,
+            cg_window_id: Some(11),
         };
         assert!(should_focus(&info, &config, None));
     }

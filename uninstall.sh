@@ -8,7 +8,9 @@ LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 # ── Unload LaunchAgent ──────────────────────────────────────────────
 echo "==> Unloading LaunchAgent..."
 if [ -f "$LAUNCH_AGENT_PLIST" ]; then
-  launchctl unload -w "$LAUNCH_AGENT_PLIST" 2>/dev/null || true
+  # Modern launchctl (bootout); fall back to legacy unload on older macOS.
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null \
+    || launchctl unload -w "$LAUNCH_AGENT_PLIST" 2>/dev/null || true
   rm -f "$LAUNCH_AGENT_PLIST"
   echo "    Removed $LAUNCH_AGENT_PLIST"
 else

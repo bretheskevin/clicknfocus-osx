@@ -52,6 +52,9 @@ echo "==> Setting up LaunchAgent for auto-start at login..."
 mkdir -p "$LAUNCH_AGENT_DIR"
 mkdir -p "$LOG_DIR"
 
+# Keep this LaunchAgent in sync with the reference template at
+# packaging/com.bretheskevin.clicknfocus.plist (that file is documentation only;
+# the real plist is generated here with paths substituted).
 cat > "$LAUNCH_AGENT_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -80,8 +83,14 @@ PLIST
 
 # ── Load the LaunchAgent ────────────────────────────────────────────
 echo "==> Loading LaunchAgent..."
-launchctl unload -w "$LAUNCH_AGENT_PLIST" 2>/dev/null || true
-launchctl load -w "$LAUNCH_AGENT_PLIST"
+GUI_DOMAIN="gui/$(id -u)"
+# Modern launchctl (bootstrap/bootout); fall back to legacy load/unload on
+# older macOS where the new subcommands are unavailable.
+launchctl bootout "$GUI_DOMAIN/$LABEL" 2>/dev/null \
+  || launchctl unload -w "$LAUNCH_AGENT_PLIST" 2>/dev/null || true
+if ! launchctl bootstrap "$GUI_DOMAIN" "$LAUNCH_AGENT_PLIST" 2>/dev/null; then
+  launchctl load -w "$LAUNCH_AGENT_PLIST"
+fi
 
 # ── Open Accessibility settings ─────────────────────────────────────
 echo "==> Opening Accessibility settings..."

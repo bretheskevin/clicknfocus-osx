@@ -123,6 +123,7 @@ dependencies = [
  "accessibility-sys",
  "clap",
  "core-foundation",
+ "core-foundation-sys",
  "core-graphics",
  "env_logger",
  "libc",
