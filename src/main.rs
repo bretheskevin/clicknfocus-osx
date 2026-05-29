@@ -31,15 +31,30 @@ fn main() {
     );
 
     // Check accessibility permission (prompts the user once if not granted).
-    // Rather than exit(1) — which under launchd's KeepAlive would respawn in a
-    // tight loop and re-prompt — we wait in-process until the user grants it.
+    //
+    // macOS caches the TCC result per-process: a process that launched
+    // *untrusted* generally never observes a grant made while it's running, so
+    // polling in-process forever can spin indefinitely. Instead we poll only
+    // briefly — long enough to catch the cases where it does update live — then
+    // exit. launchd's KeepAlive relaunches a fresh process, and a fresh process
+    // *does* see the current grant. The grace period before exiting keeps
+    // respawns slow (well above launchd's 10 s throttle) rather than a tight
+    // crash loop, and avoids exit(1) churn.
     if !permissions::check_accessibility_permission(true) {
         log::warn!(
             "Accessibility permission not granted. Waiting for it to be enabled in \
              System Settings > Privacy & Security > Accessibility..."
         );
         // Poll without re-prompting (the system dialog was already shown above).
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
         while !permissions::check_accessibility_permission(false) {
+            if std::time::Instant::now() >= deadline {
+                log::warn!(
+                    "Permission still not granted after waiting; exiting so launchd \
+                     relaunches a fresh process that can pick it up."
+                );
+                std::process::exit(0);
+            }
             std::thread::sleep(std::time::Duration::from_secs(2));
         }
     }

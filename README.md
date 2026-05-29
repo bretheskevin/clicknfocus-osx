@@ -45,6 +45,20 @@ cd clicknfocus-osx
 
 System Settings → Privacy & Security → Accessibility → enable **ClicknFocus**.
 
+> **You must restart the agent after enabling it.** macOS does not propagate a
+> new Accessibility grant to an already-running process, so the agent that was
+> launched at install time can't see it. Restart it with:
+>
+> ```sh
+> launchctl kickstart -k "gui/$(id -u)/com.bretheskevin.clicknfocus"
+> ```
+>
+> Confirm it took effect — the log should show `Accessibility permission granted`:
+>
+> ```sh
+> cat ~/Library/Logs/clicknfocus.log
+> ```
+
 ### Check it's running
 
 ClicknFocus runs in the background with no Dock icon or menu bar item.

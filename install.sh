@@ -108,9 +108,36 @@ echo ""
 echo "  If ClicknFocus is not in the list, click '+' and add:"
 echo "    $INSTALLED_APP"
 echo ""
-echo "  Once enabled, ClicknFocus will start automatically."
-echo "  (launchd KeepAlive will restart it if it crashes.)"
-echo ""
+echo "============================================================"
+
+# ── Restart the agent so it picks up the new permission ─────────────
+# macOS does not propagate a fresh Accessibility grant to an already-running
+# process, so the agent launched above can't see it. We must restart it once
+# the user has enabled the toggle.
+if [ -t 0 ]; then
+  echo ""
+  read -r -p "  After toggling ClicknFocus ON, press Enter to start it... " _
+  echo "==> Restarting the agent so it picks up the permission..."
+  launchctl kickstart -k "$GUI_DOMAIN/$LABEL" 2>/dev/null || true
+  sleep 1
+  if grep -q "Accessibility permission granted" "$LOG_FILE" 2>/dev/null; then
+    echo "==> ClicknFocus is running with Accessibility permission."
+  else
+    echo "==> Could not confirm the permission yet. If click-to-focus doesn't"
+    echo "    work, enable ClicknFocus in Accessibility, then run:"
+    echo "      launchctl kickstart -k \"$GUI_DOMAIN/$LABEL\""
+  fi
+  echo ""
+else
+  # Non-interactive install (e.g. piped). Can't wait for the toggle, so just
+  # tell the user the manual restart step they must run after enabling it.
+  echo ""
+  echo "  After enabling ClicknFocus in Accessibility, restart the agent so it"
+  echo "  picks up the permission (it won't see a grant made while running):"
+  echo "    launchctl kickstart -k \"$GUI_DOMAIN/$LABEL\""
+  echo ""
+fi
+
 echo "============================================================"
 echo "  Useful commands:"
 echo "============================================================"
